@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sandbox — Build Your Own World</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+  <nav id="nav">
+    <a class="nav-logo" href="#">
+      <span class="nav-logo-icon">◧</span>
+      <span class="nav-logo-text">SANDBOX</span>
+    </a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+    </div>
+    <div class="nav-right">
+      <button class="btn-wallet" id="btn-connect-nav">Enter</button>
+    </div>
+  </nav>
+
+  <section id="hero">
+    <canvas id="bg-canvas"></canvas>
+    <div class="hero-overlay">
+      <div class="hero-eyebrow">A place that's yours</div>
+      <div class="hero-title">BUILD<br/>SOMETHING<br/>REAL</div>
+      <div class="hero-sub">Your own private world. Place blocks, shape it however you want, come back to it whenever you like. Meet other builders in the hub.</div>
+      <div class="hero-btns">
+        <button class="btn-play" id="btn-play-now">ENTER SANDBOX</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <div class="section-title">Your world. Your rules.</div>
+    <div class="steps">
+      <div class="step"><span class="step-icon">◇</span><div class="step-title">Create a wallet</div><div class="step-desc">Generate a free Solana wallet right here. Save your private key — it's your way back in.</div></div>
+      <div class="step"><span class="step-icon">◈</span><div class="step-title">Meet other builders</div><div class="step-desc">The hub is shared — walk around, see who else is online.</div></div>
+      <div class="step"><span class="step-icon">◆</span><div class="step-title">Build privately</div><div class="step-desc">Step into your own space. Nobody can touch what you build there but you.</div></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="footer-logo">SANDBOX</div>
+    <div class="footer-copy">A place that's yours.</div>
+  </footer>
+
+  <!-- ── AUTH MODAL ── -->
+  <div id="modal-auth" class="modal-overlay">
+    <div class="modal modal-auth-box">
+
+      <div id="auth-step-choose" class="auth-step active">
+        <div class="auth-logo">◧ SANDBOX</div>
+        <div class="auth-title">Welcome</div>
+        <div class="auth-sub">First time here? Create a wallet. Already have one? Connect Phantom.</div>
+        <button class="btn-auth-primary" id="btn-go-create">Create New Wallet</button>
+        <div class="auth-divider">— returning —</div>
+        <button class="btn-phantom" id="btn-phantom-connect">Connect Phantom Wallet</button>
+        <div class="auth-phantom-note">Import your Sandbox private key into Phantom first, then connect here.</div>
+      </div>
+
+      <div id="auth-step-create" class="auth-step">
+        <div class="auth-back" id="btn-back-create">← Back</div>
+        <div class="auth-title">Create Wallet</div>
+        <div class="auth-sub">Choose a name, then generate your free Solana wallet.</div>
+        <div class="modal-field">
+          <label>Nickname</label>
+          <input type="text" id="create-nickname" maxlength="16" placeholder="YourName"/>
+        </div>
+        <div class="modal-field">
+          <label>Color</label>
+          <div class="color-row" id="create-skin-colors"></div>
+        </div>
+        <button class="btn-auth-primary" id="btn-generate-wallet">Generate Wallet</button>
+      </div>
+
+      <div id="auth-step-seed" class="auth-step">
+        <div class="auth-title" style="color:#e0654a">Save your private key</div>
+        <div class="auth-sub" style="color:rgba(224,101,74,0.85)">
+          Shown <strong>once</strong>. Copy it and import into Phantom.<br/>
+          If you lose it, your wallet is gone for good.
+        </div>
+        <div class="seed-box" id="seed-display"></div>
+        <div class="wallet-addr-box">
+          <div class="wallet-addr-label">Your Wallet Address</div>
+          <div class="wallet-addr-val" id="wallet-addr-display"></div>
+        </div>
+        <div class="phantom-import-steps">
+          <div class="phantom-step">Copy your private key above</div>
+          <div class="phantom-step">Open Phantom → Add / Connect Wallet</div>
+          <div class="phantom-step">Choose "Import Private Key"</div>
+          <div class="phantom-step">Paste your key → done</div>
+        </div>
+        <div class="seed-confirm-row">
+          <input type="checkbox" id="seed-confirm-check"/>
+          <label for="seed-confirm-check">I've saved my private key and imported it into Phantom</label>
+        </div>
+        <button class="btn-auth-primary" id="btn-confirm-seed" disabled>Now connect Phantom ▶</button>
+      </div>
+
+      <div id="auth-step-connecting" class="auth-step">
+        <div class="auth-title">Connecting...</div>
+        <div class="auth-sub">Check your Phantom wallet and approve the connection.</div>
+        <div class="connecting-spinner">◈</div>
+      </div>
+
+      <div id="auth-step-nickname" class="auth-step">
+        <div class="auth-title">Almost there</div>
+        <div class="auth-sub">Choose a name and color for this session.</div>
+        <div class="wallet-addr-box" style="margin-bottom:8px">
+          <div class="wallet-addr-label">Connected Wallet</div>
+          <div class="wallet-addr-val" id="connected-addr-display"></div>
+        </div>
+        <div class="modal-field">
+          <label>Nickname</label>
+          <input type="text" id="phantom-nickname" maxlength="16" placeholder="YourName"/>
+        </div>
+        <div class="modal-field">
+          <label>Color</label>
+          <div class="color-row" id="phantom-skin-colors"></div>
+        </div>
+        <button class="btn-auth-primary" id="btn-phantom-enter">ENTER SANDBOX ▶</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── GAME SCREEN ── -->
+  <div id="game-screen">
+    <div id="game-hud">
+      <div class="hud-left">
+        <div class="hud-logo">◧ SANDBOX</div>
+        <div class="hud-sep">|</div>
+        <div class="hud-stat">You: <span id="hud-name">-</span></div>
+        <div class="hud-sep">|</div>
+        <div class="hud-stat" id="hud-location">Hub</div>
+      </div>
+      <div class="hud-right">
+        <button class="hud-action-btn" id="btn-enter-build">Enter My Build Space</button>
+        <button class="hud-action-btn" id="btn-back-hub" style="display:none">Back to Hub</button>
+        <button class="hud-leave" id="btn-leave">✕ Leave</button>
+      </div>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+
+    <div id="crosshair"><div class="ch-h"></div><div class="ch-v"></div></div>
+
+    <div id="build-toolbar" style="display:none">
+      <div class="toolbar-label">Left click: place · Right click: remove</div>
+    </div>
+
+    <div id="click-to-play">
+      <div class="ctp-box">
+        <div class="ctp-icon">◧</div>
+        <div class="ctp-title">Click to enter</div>
+        <div class="ctp-sub">Click anywhere to look around</div>
+        <div class="ctp-controls">
+          <span><b>WASD</b> Move</span>
+          <span><b>SPACE</b> Jump</span>
+          <span><b>MOUSE</b> Look</span>
+          <span><b>ESC</b> Unlock</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="network.js"></script>
+  <script src="player.js"></script>
+  <script src="hub.js"></script>
+  <script src="buildspace.js"></script>
+  <script src="game.js"></script>
+  <script src="ui.js"></script>
+</body>
+</html>
