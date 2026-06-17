@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sandbox — Admin</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:#0a0d12;color:#e8dcc4;font-family:monospace;min-height:100vh;}
+    nav{display:flex;align-items:center;padding:0 32px;height:56px;background:rgba(16,20,28,0.95);border-bottom:1px solid rgba(217,119,87,0.15);}
+    .nav-logo{font-weight:800;font-size:16px;letter-spacing:2px;color:#e8dcc4;}
+    .nav-logo span{color:#d97757;}
+
+    #login-screen{display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 56px);}
+    .login-box{background:#181d28;border:1px solid rgba(217,119,87,0.2);border-radius:12px;padding:40px;width:90%;max-width:360px;text-align:center;}
+    .login-box h2{margin-bottom:8px;letter-spacing:1px;}
+    .login-box p{color:rgba(232,220,196,0.4);font-size:13px;margin-bottom:20px;}
+    .login-box input{width:100%;background:#0a0d12;border:1px solid rgba(232,220,196,0.12);color:#e8dcc4;padding:11px;border-radius:6px;font-family:monospace;margin-bottom:12px;}
+    .btn-login{width:100%;background:#d97757;color:#10141c;border:none;padding:12px;border-radius:6px;font-weight:800;cursor:pointer;}
+
+    #dashboard{display:none;padding:32px;}
+    .dash-title{font-size:18px;font-weight:800;margin-bottom:24px;}
+    .dash-title span{color:#d97757;}
+    .search-row{margin-bottom:18px;}
+    .search-row input{width:100%;max-width:340px;background:#181d28;border:1px solid rgba(232,220,196,0.1);color:#e8dcc4;padding:10px 14px;border-radius:6px;font-family:monospace;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{text-align:left;padding:10px 12px;color:rgba(217,119,87,0.6);text-transform:uppercase;letter-spacing:1px;font-size:10px;border-bottom:1px solid rgba(217,119,87,0.15);}
+    td{padding:11px 12px;border-bottom:1px solid rgba(232,220,196,0.04);}
+    tr.banned td{opacity:0.4;}
+    .ban-btn{background:rgba(200,50,30,0.12);border:1px solid rgba(200,50,30,0.35);color:#e0654a;padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;}
+    .ban-btn:hover{background:rgba(200,50,30,0.25);}
+    .banned-tag{color:#e0654a;font-weight:700;font-size:11px;}
+    #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#181d28;border:1px solid rgba(217,119,87,0.3);color:#e8dcc4;font-size:13px;padding:10px 22px;border-radius:6px;transition:transform .3s;}
+    #toast.show{transform:translateX(-50%) translateY(0);}
+  </style>
+</head>
+<body>
+
+<nav><div class="nav-logo">SANDBOX <span>ADMIN</span></div></nav>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h2>Admin access</h2>
+    <p>Enter the admin password to continue</p>
+    <input type="password" id="admin-pass" placeholder="Password..." onkeydown="if(event.key==='Enter')login()"/>
+    <button class="btn-login" onclick="login()">LOGIN</button>
+  </div>
+</div>
+
+<div id="dashboard">
+  <div class="dash-title">SAND<span>BOX</span> — Players</div>
+  <div class="search-row"><input type="text" id="search" placeholder="Search nickname or wallet..." oninput="renderTable()"/></div>
+  <table>
+    <thead><tr><th>Nickname</th><th>Wallet</th><th>Last Seen</th><th>Joined</th><th>Status</th><th></th></tr></thead>
+    <tbody id="player-table"><tr><td colspan="6">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let adminPass = '';
+  let players = [];
+
+  async function login() {
+    const pass = document.getElementById('admin-pass').value;
+    const res = await fetch('/api/admin/players', { headers: { 'x-admin-password': pass } });
+    if (res.status === 401) { showToast('Wrong password'); return; }
+    adminPass = pass;
+    players = await res.json();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    renderTable();
+  }
+
+  function renderTable() {
+    const search = document.getElementById('search').value.toLowerCase();
+    const filtered = players.filter(p =>
+      p.nickname?.toLowerCase().includes(search) || p.wallet_address?.toLowerCase().includes(search)
+    );
+
+    document.getElementById('player-table').innerHTML = filtered.map(p => {
+      const wallet = p.wallet_address || '';
+      const short = wallet.slice(0, 8) + '...' + wallet.slice(-4);
+      const lastSeen = p.last_seen ? new Date(p.last_seen).toLocaleDateString() : '-';
+      const joined = p.created_at ? new Date(p.created_at).toLocaleDateString() : '-';
+      return `<tr class="${p.banned ? 'banned' : ''}">
+        <td>${escHtml(p.nickname || '-')}</td>
+        <td>${short}</td>
+        <td>${lastSeen}</td>
+        <td>${joined}</td>
+        <td>${p.banned ? '<span class="banned-tag">BANNED</span>' : '—'}</td>
+        <td>${p.banned ? '' : `<button class="ban-btn" onclick="banPlayer('${wallet}')">Ban</button>`}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function banPlayer(wallet) {
+    if (!confirm('Ban this wallet? They will be disconnected immediately and unable to reconnect.')) return;
+    const reason = prompt('Reason for ban (optional):') || 'Violation';
+    await fetch('/api/admin/ban', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': adminPass },
+      body: JSON.stringify({ walletAddress: wallet, reason })
+    });
+    showToast('Wallet banned');
+    const res = await fetch('/api/admin/players', { headers: { 'x-admin-password': adminPass } });
+    players = await res.json();
+    renderTable();
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+</script>
+</body>
+</html>
